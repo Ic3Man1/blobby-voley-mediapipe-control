@@ -1,0 +1,12 @@
+# encs
+venv/
+.venv/
+env/
+.env/
+virtualenv/
+venv-*
+
+# cache and compiled python files
+__pycache__/
+*.py[cod]
+*$py.class
