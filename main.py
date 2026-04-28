@@ -2,7 +2,10 @@ import cv2
 import mediapipe as mp
 import pyautogui
 
+pyautogui.PAUSE = 0 
+
 mp_face_mesh = mp.solutions.face_mesh
+
 face_mesh = mp_face_mesh.FaceMesh(
     max_num_faces=1,
     refine_landmarks=True,
@@ -12,17 +15,25 @@ face_mesh = mp_face_mesh.FaceMesh(
 
 cap = cv2.VideoCapture(0)
 
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
 while cap.isOpened():
     success, image = cap.read()
     if not success:
-        print("Ignoring empty camera frame.")
         continue
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
+    image.flags.writeable = False
     results = face_mesh.process(image)
+    image.flags.writeable = True
+
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
-            
+
             upper_lip_y = face_landmarks.landmark[13].y
             lower_lip_y = face_landmarks.landmark[14].y
             mouth_distance = lower_lip_y - upper_lip_y
@@ -47,10 +58,8 @@ while cap.isOpened():
 
     cv2.imshow('Blobby Volley Controller', image)
 
-    if cv2.waitKey(5) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
 cv2.destroyAllWindows()
-pyautogui.keyUp('left')
-pyautogui.keyUp('right')
