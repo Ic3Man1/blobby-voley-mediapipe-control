@@ -1,6 +1,9 @@
 import cv2
 import mediapipe as mp
 import pyautogui
+from model import GestureClassifier
+
+CLASSES = ['gesture', 'no_gesture'] 
 
 pyautogui.PAUSE = 0 
 
@@ -12,6 +15,8 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
+
+classifier = GestureClassifier('first_model.keras', CLASSES)
 
 cap = cv2.VideoCapture(0)
 
@@ -30,6 +35,14 @@ while cap.isOpened():
     image.flags.writeable = True
 
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    label, confidence = classifier.predict(image)
+
+    print(f"Predicted: {label} with confidence {confidence:.2f}")
+
+    if  label == 'gesture':
+         cv2.putText(image, f"Gesture Detected ({confidence:.2f})", (10, 30), 
+                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
