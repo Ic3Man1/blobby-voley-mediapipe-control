@@ -1,23 +1,31 @@
 import cv2
 import os
 
-label = "gest" # Zmień na "tlo" dla drugiej serii
-save_path = f"dataset/{label}"
-os.makedirs(save_path, exist_ok=True)
+label = "gest" 
+gesture_path = f"dataset/gesture"
+os.makedirs(gesture_path, exist_ok=True)
+no_gesture_path = f"dataset/no_gesture"
+os.makedirs(no_gesture_path, exist_ok=True)
 
 cap = cv2.VideoCapture(0)
-count = 0
+gesture_count = 0
+no_gesture_count = 0
 
 while True:
     ret, frame = cap.read()
-    cv2.imshow("Zbieranie danych - naciśnij 's' by zapisac, 'q' by wyjsc", frame)
+    cv2.imshow("Collecting data, to save gesture press 's', to save default pose press 'k', to quit press 'q'", frame)
     
     key = cv2.waitKey(1)
     if key == ord('s'):
-        img_name = f"{save_path}/{count}.jpg"
+        img_name = f"{gesture_path}/{gesture_count}.jpg"
         cv2.imwrite(img_name, frame)
-        print(f"Zapisano: {img_name}")
-        count += 1
+        print(f"Saved: {img_name}")
+        gesture_count += 1
+    elif key == ord('k'):
+        img_name = f"{no_gesture_path}/{no_gesture_count}.jpg"
+        cv2.imwrite(img_name, frame)
+        print(f"Saved: {img_name}")
+        no_gesture_count += 1
     elif key == ord('q'):
         break
 
