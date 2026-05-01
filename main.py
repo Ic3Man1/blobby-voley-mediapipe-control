@@ -1,10 +1,34 @@
 import cv2
 import mediapipe as mp
+import pickle
+import numpy as np
 # import pyautogui
 
 # pyautogui.PAUSE = 0
 
+def normalize_landmarks(landmarks):
+    temp_list = []
+    base_x, base_y = landmarks[0].x, landmarks[0].y
+    
+    # 1. Translacja do (0,0) względem nadgarstka
+    for lm in landmarks:
+        temp_list.append(lm.x - base_x)
+        temp_list.append(lm.y - base_y)
+        
+    # 2. Normalizacja skali
+    max_val = max(map(abs, temp_list))
+    if max_val > 0:
+        temp_list = [n / max_val for n in temp_list]
+        
+    return temp_list
+
+with open('hand_model.pkl', 'rb') as f:
+    model = pickle.load(f)
+
+mp_hands = mp.solutions.hands
 mp_face_mesh = mp.solutions.face_mesh
+
+hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.5)
 
 face_mesh = mp_face_mesh.FaceMesh(
     max_num_faces=2,
@@ -25,9 +49,32 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image.flags.writeable = False
     results = face_mesh.process(image)
+    hand_results = hands.process(image)
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     h, w, _ = image.shape
+
+    if hand_results.multi_hand_landmarks:
+        for hand_landmarks in hand_results.multi_hand_landmarks:
+            for idx, lm in enumerate(hand_landmarks.landmark):
+                cx, cy = int(lm.x * w), int(lm.y * h)
+                
+                cv2.circle(image, (cx, cy), 4, (0, 255, 0), -1)
+                cv2.putText(image, str(idx), (cx + 5, cy),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
+                
+            features = normalize_landmarks(hand_landmarks.landmark)
+
+            prediction = model.predict([features])[0]
+            probability = np.max(model.predict_proba([features]))
+
+            if probability > 0.8:
+                cv2.putText(image, f"GEST: {prediction} ({probability:.2f})", 
+                            (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                
+                if prediction == "rotate":
+                    # pyautogui.press('space')
+                    pass
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
@@ -64,12 +111,12 @@ while cap.isOpened():
             else:
                 ratio = 0.5
 
-            if ratio < 0.42:
+            if ratio < 0.38:
                 # pyautogui.keyDown('left')
                 # pyautogui.keyUp('right')
                 cv2.putText(image, "LEFT", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            elif ratio > 0.52:
+            elif ratio > 0.56:
                 # pyautogui.keyDown('right')
                 # pyautogui.keyUp('left')
                 cv2.putText(image, "RIGHT", (50, 100),

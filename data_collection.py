@@ -1,33 +1,57 @@
 import cv2
-import os
+import mediapipe as mp
+import csv
+import numpy as np
 
-label = "gest" 
-gesture_path = f"dataset/gesture"
-os.makedirs(gesture_path, exist_ok=True)
-no_gesture_path = f"dataset/no_gesture"
-os.makedirs(no_gesture_path, exist_ok=True)
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.7)
+
+LABEL = "idle"
+FILE_NAME = "hand_gestures.csv"
+
+def normalize_landmarks(landmarks):
+    temp_list = []
+    base_x, base_y = landmarks[0].x, landmarks[0].y
+    
+    # 1. Translacja do (0,0) względem nadgarstka
+    for lm in landmarks:
+        temp_list.append(lm.x - base_x)
+        temp_list.append(lm.y - base_y)
+        
+    # 2. Normalizacja skali
+    max_val = max(map(abs, temp_list))
+    if max_val > 0:
+        temp_list = [n / max_val for n in temp_list]
+        
+    return temp_list
 
 cap = cv2.VideoCapture(0)
-gesture_count = 0
-no_gesture_count = 0
+print(f"'s' aby zapisać klatkę, 'q' aby wyjść")
 
-while True:
-    ret, frame = cap.read()
-    cv2.imshow("Collecting data, to save gesture press 's', to save default pose press 'k', to quit press 'q'", frame)
+with open(FILE_NAME, mode='a', newline='') as f:
+    writer = csv.writer(f)
     
-    key = cv2.waitKey(1)
-    if key == ord('s'):
-        img_name = f"{gesture_path}/{gesture_count}.jpg"
-        cv2.imwrite(img_name, frame)
-        print(f"Saved: {img_name}")
-        gesture_count += 1
-    elif key == ord('k'):
-        img_name = f"{no_gesture_path}/{no_gesture_count}.jpg"
-        cv2.imwrite(img_name, frame)
-        print(f"Saved: {img_name}")
-        no_gesture_count += 1
-    elif key == ord('q'):
-        break
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break
+        
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(image)
+        
+        if results.multi_hand_landmarks:
+            hand_landmarks = results.multi_hand_landmarks[0]
+            
+            mp.solutions.drawing_utils.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            key = cv2.waitKey(1)
+            if key & 0xFF == ord('s'):
+                data = normalize_landmarks(hand_landmarks.landmark)
+                writer.writerow([LABEL] + data)
+                print(f"Zapisano próbkę dla: {LABEL}")
+            elif key & 0xFF == ord('q'):
+                break
+
+        cv2.imshow("Zbieranie danych", frame)
 
 cap.release()
 cv2.destroyAllWindows()

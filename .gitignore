@@ -7,6 +7,10 @@ virtualenv/
 venv-*
 .python-version
 
+.vscode
+*.csv
+*.pkl
+
 # cache and compiled python files
 __pycache__/
 *.py[cod]
