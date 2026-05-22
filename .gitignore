@@ -9,7 +9,6 @@ venv-*
 
 .vscode
 *.csv
-*.pkl
 
 # cache and compiled python files
 __pycache__/
