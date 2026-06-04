@@ -135,16 +135,16 @@ while cap.isOpened():
                 ratio = 0.5
 
             if ratio < 0.38:
-                ui.write(e.EV_KEY, e.KEY_LEFT, 1)
-                ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
-                ui.syn()
-                cv2.putText(image, "LEFT", (50, 100),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-            elif ratio > 0.56:
                 ui.write(e.EV_KEY, e.KEY_LEFT, 0)
                 ui.write(e.EV_KEY, e.KEY_RIGHT, 1)
                 ui.syn()
                 cv2.putText(image, "RIGHT", (50, 100),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+            elif ratio > 0.56:
+                ui.write(e.EV_KEY, e.KEY_LEFT, 1)
+                ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
+                ui.syn()
+                cv2.putText(image, "LEFT", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             else:
                 ui.write(e.EV_KEY, e.KEY_LEFT, 0)
