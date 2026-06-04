@@ -2,9 +2,9 @@ import cv2
 import mediapipe as mp
 import pickle
 import numpy as np
-# import pyautogui
+from evdev import UInput, ecodes as e
 
-# pyautogui.PAUSE = 0
+ui = UInput({e.EV_KEY: [e.KEY_SPACE, e.KEY_UP, e.KEY_LEFT, e.KEY_RIGHT]})
 
 def normalize_landmarks(landmarks):
     temp_list = []
@@ -41,6 +41,9 @@ cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
+space_pressed = False
+up_pressed = False  
+
 while cap.isOpened():
     success, image = cap.read()
     if not success:
@@ -73,8 +76,20 @@ while cap.isOpened():
                             (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
                 
                 if prediction == "rotate":
-                    # pyautogui.press('space')
-                    pass
+                    if not space_pressed:
+                        ui.write(e.EV_KEY, e.KEY_SPACE, 1)
+                        ui.syn()
+                        space_pressed = True
+                else:
+                    if space_pressed:
+                        ui.write(e.EV_KEY, e.KEY_SPACE, 0)
+                        ui.syn()
+                        space_pressed = False
+    else:
+        if space_pressed:
+            ui.write(e.EV_KEY, e.KEY_SPACE, 0)
+            ui.syn()
+            space_pressed = False
 
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
@@ -93,9 +108,17 @@ while cap.isOpened():
             mouth_distance = lower_lip_y - upper_lip_y
 
             if mouth_distance > 0.05:
-                # pyautogui.press('up')
+                if not up_pressed:
+                    ui.write(e.EV_KEY, e.KEY_UP, 1)
+                    ui.syn()
+                    up_pressed = True
                 cv2.putText(image, "JUMP", (50, 50),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            else:
+                if up_pressed:
+                    ui.write(e.EV_KEY, e.KEY_UP, 0)
+                    ui.syn()
+                    up_pressed = False
 
             # Obrót głowy -> lewo/prawo
             nose_x = face_landmarks.landmark[1].x
@@ -112,23 +135,32 @@ while cap.isOpened():
                 ratio = 0.5
 
             if ratio < 0.38:
-                # pyautogui.keyDown('left')
-                # pyautogui.keyUp('right')
+                ui.write(e.EV_KEY, e.KEY_LEFT, 1)
+                ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
+                ui.syn()
                 cv2.putText(image, "LEFT", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
             elif ratio > 0.56:
-                # pyautogui.keyDown('right')
-                # pyautogui.keyUp('left')
+                ui.write(e.EV_KEY, e.KEY_LEFT, 0)
+                ui.write(e.EV_KEY, e.KEY_RIGHT, 1)
+                ui.syn()
                 cv2.putText(image, "RIGHT", (50, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            # else:
-                # pyautogui.keyUp('left')
-                # pyautogui.keyUp('right')
+            else:
+                ui.write(e.EV_KEY, e.KEY_LEFT, 0)
+                ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
+                ui.syn()
 
     cv2.imshow('Blobby Volley Controller', image)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+ui.write(e.EV_KEY, e.KEY_SPACE, 0)
+ui.write(e.EV_KEY, e.KEY_UP, 0)
+ui.write(e.EV_KEY, e.KEY_LEFT, 0)
+ui.write(e.EV_KEY, e.KEY_RIGHT, 0)
+ui.syn()
 
 cap.release()
 cv2.destroyAllWindows()

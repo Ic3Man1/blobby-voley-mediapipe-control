@@ -26,7 +26,7 @@ def normalize_landmarks(landmarks):
     return temp_list
 
 cap = cv2.VideoCapture(0)
-print(f"'s' aby zapisać klatkę, 'q' aby wyjść")
+print(f"'s' aby zapisać, 'q' aby wyjść")
 
 with open(FILE_NAME, mode='a', newline='') as f:
     writer = csv.writer(f)
